@@ -1,18 +1,17 @@
 defmodule Statsy do
-  @moduledoc """
-  Documentation for Statsy.
-  """
+  use Application
 
-  @doc """
-  Hello world.
+  def start(_type, _args) do
+    import Supervisor.Spec, warn: false
 
-  ## Examples
+    token = Application.get_env(:statsy, :token)
+    port = Application.get_env(:statsy, :cowboy_port)
 
-      iex> Statsy.hello
-      :world
+    children = [
+      {Plug.Adapters.Cowboy2, scheme: :http, plug: Statsy.Server, options: [port: port]},
+      worker(Slack.Bot, [Statsy.Bot, [], token, %{ name: Statsy.Bot} ])
+    ]
 
-  """
-  def hello do
-    :world
+    Supervisor.start_link(children, [strategy: :one_for_one, name: Statsy.Supervisor])
   end
 end
